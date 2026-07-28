@@ -17,6 +17,10 @@ The viewer position is converted to GSplat local space and captured once. It doe
 head after playback begins. Call `SetProgress` for externally driven transitions, or
 `CompleteImmediately` to return to the exact undeformed splat.
 
+`Progress` is a deterministic timeline and can be scrubbed in the Inspector. From zero to
+`Fade In End`, splats fade into a wide, full-height rotating volume around the captured center.
+They remain in that storm until `Assembly Start`, then stagger and fly into their final positions.
+
 Global merged sorting automatically falls back to per-renderer sorting while any effect is active.
 It resumes after every active effect completes.
 

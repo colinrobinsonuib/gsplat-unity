@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0-worldlabs.1] - 2026-07-28
+## [1.4.0-worldlabs.2] - 2026-07-28
 
 ### Added
 
@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   effect-aware bounds, and automatic fallback from global sorting while an effect is active.
 - Added a reusable hurricane assembly effect and profile. Splats circulate in a wide volume
   around a captured viewer position before settling into their original world positions.
+- Hurricane progress scrubbing now drives orbit time deterministically. Fade-in happens while
+  splats remain in the storm, with assembly beginning independently at the configured phase.
 
 ## [1.4.0] - 2026-07-26
 
