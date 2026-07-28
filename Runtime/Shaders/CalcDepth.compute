@@ -11,6 +11,8 @@ StructuredBuffer<float3> _PositionBuffer;
 StructuredBuffer<uint> _OrderBuffer;
 RWStructuredBuffer<float> _DepthBuffer;
 
+#include "Effects/GsplatEffects.hlsl"
+
 [numthreads(GROUP_SIZE,1,1)]
 void CalcDepth(uint3 id : SV_DispatchThreadID)
 {
@@ -18,7 +20,9 @@ void CalcDepth(uint3 id : SV_DispatchThreadID)
     if (idx >= _SplatCount)
         return;
 
-    float3 pos = _PositionBuffer[_OrderBuffer[idx]];
+    uint splatId = _OrderBuffer[idx];
+    float3 pos = _PositionBuffer[splatId];
+    ApplyGsplatEffectPosition(splatId, pos);
     pos = mul(_MatrixMV, float4(pos.xyz, 1)).xyz;
     _DepthBuffer[idx] = pos.z;
 }

@@ -43,6 +43,13 @@ The sorting pass, built upon [b0nes164/GPUSorting](https://github.com/b0nes164/G
 
 ## Usage
 
+### Modular effects
+
+This fork adds modular per-splat effects with matching visual and depth-sort deformation. Add a
+`HurricaneGsplatEffect` beside a `GsplatRenderer`, assign it to the renderer's `Effect` field, and
+call `Play()` to assemble the splat from a viewer-centered hurricane. See
+[`Documentation~/Effects.md`](Documentation~/Effects.md) for setup and plugin authoring details.
+
 ### Install
 
 After cloning or downloading this repository, open your Unity project (or create a new one). Navigate to `Window > Package Manager`, click the `+` button, select `Install package from disk...`, and then choose the `package.json` file from this repository.

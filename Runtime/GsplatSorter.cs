@@ -17,6 +17,7 @@ namespace Gsplat
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
         public bool ComputeSortRequired { get; }
+        public bool EffectActive { get; }
         public void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv);
 
         // Used by GsplatSorter to populate the global packed buffer.
@@ -156,6 +157,8 @@ namespace Gsplat
             // Global merge requires every active renderer to use SPARK compression.
             foreach (var gs in m_activeGsplats)
             {
+                if (gs.EffectActive)
+                    return false;
                 if (gs.GsplatResource is GsplatResourceSpark) continue;
                 var obj = gs as UnityEngine.Object;
                 var id = obj ? GsplatUtils.GetObjectId(obj) : 0;

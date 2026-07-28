@@ -5,6 +5,7 @@
 #define GSPLAT_SPARK_INCLUDED
 
 #include "Gsplat.hlsl"
+#include "Effects/GsplatEffects.hlsl"
 StructuredBuffer<uint4> _PackedSplatsBuffer;
 
 // Implementation taken from spark.js
@@ -70,6 +71,7 @@ bool InitSplatData(SplatSource source, float4x4 modelView, out SplatCenter cente
     float3 modelCenter, scale;
     float4 quat;
     UnpackSplat(packedSplat, color, modelCenter, scale, quat);
+    ApplyGsplatEffect(source.id, modelCenter, scale, color);
     if (!InitCenter(modelView, modelCenter, center))
         return false;
     SplatCovariance cov = CalcCovariance(quat, scale);

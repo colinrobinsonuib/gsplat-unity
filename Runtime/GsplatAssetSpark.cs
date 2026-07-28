@@ -134,7 +134,7 @@ namespace Gsplat
         }
 
         public override void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv,
-            ISorterResource sorterResource, GsplatResource resource)
+            ISorterResource sorterResource, GsplatResource resource, GsplatEffectShaderData effectData)
         {
             var res = (GsplatResourceSpark)resource;
             var cs = GsplatMaterial.CalcDepthShader;
@@ -144,6 +144,7 @@ namespace Gsplat
             cmd.SetComputeBufferParam(cs, kernelCalcDepthSpark, k_packedSplatsBuffer, res.PackedSplatsBuffer);
             cmd.SetComputeBufferParam(cs, kernelCalcDepthSpark, k_depthBuffer, sorterResource.InputKeys);
             cmd.SetComputeBufferParam(cs, kernelCalcDepthSpark, k_orderBuffer, sorterResource.OrderBuffer);
+            effectData.Apply(cmd, cs);
             cmd.DispatchCompute(cs, kernelCalcDepthSpark, (int)GsplatUtils.DivRoundUp(res.UploadedCount, 1024), 1, 1);
         }
 

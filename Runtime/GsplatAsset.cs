@@ -216,7 +216,7 @@ namespace Gsplat
         public abstract void SetupMaterialPropertyBlock(MaterialPropertyBlock propertyBlock, GsplatResource resource);
 
         public abstract void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv,
-            ISorterResource sorterResource, GsplatResource resource);
+            ISorterResource sorterResource, GsplatResource resource, GsplatEffectShaderData effectData);
 
         public abstract void InitOrder(ISorterResource sorterResource, GsplatResource resource,
             bool updateBounds);

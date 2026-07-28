@@ -62,8 +62,8 @@ namespace Gsplat
             CreatePropertyBlock();
         }
 
-        public void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv) =>
-            m_gsplatAsset.ComputeDepth(cmd, matrixMv, SorterResource, GsplatResource);
+        public void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv, GsplatEffectShaderData effectData) =>
+            m_gsplatAsset.ComputeDepth(cmd, matrixMv, SorterResource, GsplatResource, effectData);
 
         Bounds ExtractBounds()
         {
@@ -261,7 +261,8 @@ namespace Gsplat
         /// <param name="scaleFactor">Splats uv scaling factor, reduce splat size while trying to keep visual fidelity.</param>
         /// <param name="renderOrder">Manual render order placement of the gsplat. The final value is capped by the maximum render order setting.</param>
         public void Render(Transform transform, int layer, bool gammaToLinear = false, int shDegree = 3,
-            float brightness = 1.0f, float scaleFactor = 1.0f, uint renderOrder = 0)
+            float brightness = 1.0f, float scaleFactor = 1.0f, uint renderOrder = 0,
+            GsplatEffectShaderData effectData = default, Bounds? boundsOverride = null)
         {
             if (m_remainingCount <= 0)
                 return;
@@ -273,11 +274,12 @@ namespace Gsplat
             m_propertyBlock.SetFloat(k_brightness, brightness);
             m_propertyBlock.SetFloat(k_scaleFactor, scaleFactor);
             m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
+            effectData.Apply(m_propertyBlock);
 
             uint order = Math.Clamp(renderOrder, 0, GsplatSettings.Instance.MaxRenderOrder - 1);
             var rp = new RenderParams(m_gsplatAsset.Materials[order])
             {
-                worldBounds = GsplatUtils.CalcWorldBounds(m_bounds, transform),
+                worldBounds = GsplatUtils.CalcWorldBounds(boundsOverride ?? m_bounds, transform),
                 matProps = m_propertyBlock,
                 layer = layer
             };

@@ -19,6 +19,8 @@ namespace Gsplat
         }
 
         public GsplatAsset GsplatAsset;
+        [Tooltip("Optional modular per-splat effect component.")]
+        public GsplatEffect Effect;
 
         // Range is enforced by GsplatRendererEditor based on the bound asset's SHBands.
         public int SHDegree = 3;
@@ -50,6 +52,7 @@ namespace Gsplat
         // IGsplat global-merge members: expose per-renderer GPU buffers for the global sorter.
         public GsplatResource GsplatResource => m_renderer?.GsplatResource;
         public byte SHBands => GsplatAsset?.SHBands ?? 0;
+        public bool EffectActive => Effect && Effect.IsActive;
 
 
         public uint RemainingCount
@@ -85,10 +88,13 @@ namespace Gsplat
         [HideInInspector] public uint SortRefreshRate = 1;
         [HideInInspector] public uint CutoutsRefreshRate = 1;
 
-        public void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv) => m_renderer.ComputeDepth(cmd, matrixMv);
+        public void ComputeDepth(CommandBuffer cmd, Matrix4x4 matrixMv) =>
+            m_renderer.ComputeDepth(cmd, matrixMv, EffectActive ? Effect.ShaderData : default);
 
         void OnEnable()
         {
+            if (!Effect)
+                Effect = GetComponent<GsplatEffect>();
             GsplatSorter.Instance.RegisterGsplat(this);
             m_prevAsset = null;
         }
@@ -122,6 +128,8 @@ namespace Gsplat
 
         void OnValidate()
         {
+            if (!Effect)
+                Effect = GetComponent<GsplatEffect>();
             ForceRefresh();
 #if UNITY_EDITOR
             if (GsplatAsset &&
@@ -161,13 +169,19 @@ namespace Gsplat
 
             if (Valid && GsplatSettings.Instance.Valid && GsplatSorter.Instance.Valid)
             {
+                if (EffectActive)
+                    m_renderer.ForceRefresh();
                 m_renderer.EvaluateRefreshRequired(SortMode, SortRefreshRate - 1, CutoutsRefreshRate - 1);
                 m_renderer.DispatchInitOrder(Cutouts, transform.localToWorldMatrix, CutoutsUpdateBounds);
                 // When the global sorter has merged all renderers into a single draw call,
                 // skip the per-renderer draw — GsplatSorter.DrawAll handles rendering.
                 if (!GsplatSorter.Instance.GlobalRenderEnabled)
+                {
+                    var effectData = EffectActive ? Effect.ShaderData : default;
+                    var renderBounds = EffectActive ? Effect.ExpandBounds(m_renderer.m_bounds) : m_renderer.m_bounds;
                     m_renderer.Render(transform, gameObject.layer, GammaToLinear, SHDegree, Brightness,
-                        1.0f - SplatDownscaleFactor, RenderOrder);
+                        1.0f - SplatDownscaleFactor, RenderOrder, effectData, renderBounds);
+                }
             }
         }
     }

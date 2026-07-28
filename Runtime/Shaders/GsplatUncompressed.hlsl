@@ -5,6 +5,7 @@
 #define GSPLAT_UNCOMPRESSED_INCLUDED
 
 #include "Gsplat.hlsl"
+#include "Effects/GsplatEffects.hlsl"
 StructuredBuffer<float3> _PositionBuffer;
 StructuredBuffer<float3> _ScaleBuffer;
 StructuredBuffer<float4> _RotationBuffer;
@@ -14,14 +15,15 @@ bool InitSplatData(SplatSource source, float4x4 modelView, out SplatCenter cente
                    out float4 color)
 {
     float3 modelCenter = _PositionBuffer[source.id];
-    if (!InitCenter(modelView, modelCenter, center))
-        return false;
     float4 quat = _RotationBuffer[source.id];
     float3 scale = _ScaleBuffer[source.id];
+    color = _ColorBuffer[source.id];
+    ApplyGsplatEffect(source.id, modelCenter, scale, color);
+    if (!InitCenter(modelView, modelCenter, center))
+        return false;
     SplatCovariance cov = CalcCovariance(quat, scale);
     if (!InitCorner(source, cov, center, corner))
         return false;
-    color = _ColorBuffer[source.id];
     color.rgb = color.rgb * SH_C0 + 0.5;
     return true;
 }
