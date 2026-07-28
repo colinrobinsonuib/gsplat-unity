@@ -22,12 +22,21 @@ namespace Gsplat
         [Range(0.05f, 0.95f)] public float AssemblyStart = 0.5f;
         [FormerlySerializedAs("FadeInFraction")]
         [Range(0.05f, 0.95f)] public float FadeInEnd = 0.5f;
+        [Range(0.05f, 0.95f)] public float CloudSettleEnd = 0.65f;
+        [Range(0.05f, 0.99f)] public float RippleStart = 0.75f;
+        [Range(0.001f, 1.0f)] public float CloudDensity = 0.12f;
+        [Min(0.0f)] public float WobbleAmplitude = 0.08f;
+        [Min(0.1f)] public float RippleRadius = 10.0f;
+        [Min(0.01f)] public float RippleWidth = 0.75f;
+        [Min(0.0f)] public float RippleGlow = 0.75f;
         public float Seed;
 
         void OnValidate()
         {
             OuterRadius = Mathf.Max(OuterRadius, InnerRadius);
             FadeInEnd = Mathf.Min(FadeInEnd, AssemblyStart);
+            CloudSettleEnd = Mathf.Max(CloudSettleEnd, AssemblyStart);
+            RippleStart = Mathf.Max(RippleStart, CloudSettleEnd);
         }
     }
 }

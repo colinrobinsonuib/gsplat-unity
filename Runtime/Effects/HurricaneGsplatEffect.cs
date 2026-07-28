@@ -32,6 +32,13 @@ namespace Gsplat
         const float k_defaultInitialScale = 0.07f;
         const float k_defaultAssemblyStart = 0.5f;
         const float k_defaultFadeInEnd = 0.5f;
+        const float k_defaultCloudSettleEnd = 0.65f;
+        const float k_defaultRippleStart = 0.75f;
+        const float k_defaultCloudDensity = 0.12f;
+        const float k_defaultWobbleAmplitude = 0.08f;
+        const float k_defaultRippleRadius = 10.0f;
+        const float k_defaultRippleWidth = 0.75f;
+        const float k_defaultRippleGlow = 0.75f;
 
         float Duration => Profile ? Profile.Duration : k_defaultDuration;
         float InnerRadius => Profile ? Profile.InnerRadius : k_defaultInnerRadius;
@@ -45,6 +52,32 @@ namespace Gsplat
         float InitialScale => Profile ? Profile.InitialScale : k_defaultInitialScale;
         float AssemblyStart => Profile ? Profile.AssemblyStart : k_defaultAssemblyStart;
         float FadeInEnd => Profile ? Mathf.Min(Profile.FadeInEnd, Profile.AssemblyStart) : k_defaultFadeInEnd;
+        float CloudSettleEnd =>
+            Profile ? Mathf.Max(Profile.CloudSettleEnd, Profile.AssemblyStart) : k_defaultCloudSettleEnd;
+        float RippleStart =>
+            Profile ? Mathf.Max(Profile.RippleStart, Profile.CloudSettleEnd) : k_defaultRippleStart;
+        float CloudDensity => Profile ? Profile.CloudDensity : k_defaultCloudDensity;
+        float WobbleAmplitude => Profile ? Profile.WobbleAmplitude : k_defaultWobbleAmplitude;
+        float RippleRadius
+        {
+            get
+            {
+                var configuredRadius = Profile ? Profile.RippleRadius : k_defaultRippleRadius;
+                if (!m_renderer || !m_renderer.GsplatAsset)
+                    return configuredRadius;
+
+                var bounds = m_renderer.GsplatAsset.Bounds;
+                var maxX = Mathf.Max(
+                    Mathf.Abs(bounds.min.x - m_effectCenterLocal.x),
+                    Mathf.Abs(bounds.max.x - m_effectCenterLocal.x));
+                var maxZ = Mathf.Max(
+                    Mathf.Abs(bounds.min.z - m_effectCenterLocal.z),
+                    Mathf.Abs(bounds.max.z - m_effectCenterLocal.z));
+                return Mathf.Max(configuredRadius, Mathf.Sqrt(maxX * maxX + maxZ * maxZ));
+            }
+        }
+        float RippleWidth => Profile ? Profile.RippleWidth : k_defaultRippleWidth;
+        float RippleGlow => Profile ? Profile.RippleGlow : k_defaultRippleGlow;
         float Seed => Profile ? Profile.Seed : 0.0f;
 
         public float Progress => m_progress;
@@ -68,8 +101,9 @@ namespace Gsplat
                         RotationsPerSecond * Mathf.PI * 2.0f),
                     new Vector4(VerticalTurbulence, Stagger, InitialScale,
                         VerticalCyclesPerSecond * Mathf.PI * 2.0f),
-                    new Vector4(AssemblyStart, FadeInEnd, Seed, 0.0f),
-                    new Vector4(StormHalfHeight, 0.0f, 0.0f, 0.0f));
+                    new Vector4(AssemblyStart, FadeInEnd, Seed, CloudSettleEnd),
+                    new Vector4(StormHalfHeight, CloudDensity, WobbleAmplitude, 0.0f),
+                    new Vector4(RippleStart, RippleRadius, RippleWidth, RippleGlow));
             }
         }
 
@@ -163,6 +197,7 @@ namespace Gsplat
             if (!IsActive)
                 return sourceBounds;
 
+            sourceBounds.Expand(WobbleAmplitude * 2.0f);
             var minY = Mathf.Min(sourceBounds.min.y,
                 m_effectCenterLocal.y - StormHalfHeight - VerticalTurbulence);
             var maxY = Mathf.Max(sourceBounds.max.y,

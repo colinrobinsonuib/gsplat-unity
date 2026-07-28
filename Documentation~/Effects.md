@@ -18,8 +18,11 @@ head after playback begins. Call `SetProgress` for externally driven transitions
 `CompleteImmediately` to return to the exact undeformed splat.
 
 `Progress` is a deterministic timeline and can be scrubbed in the Inspector. From zero to
-`Fade In End`, splats fade into a wide, full-height rotating volume around the captured center.
-They remain in that storm until `Assembly Start`, then stagger and fly into their final positions.
+`Fade In End`, a deterministic `Cloud Density` subset fades and grows into a wide, full-height
+rotating volume around the captured center. Only those same splats settle into their final
+positions between `Assembly Start` and `Cloud Settle End`; they then wobble in place until
+`Ripple Start`. The radial ripple reveals every remaining splat, grows the cloud subset from its
+small scaffold scale to full scale, and removes its wobble.
 
 Global merged sorting automatically falls back to per-renderer sorting while any effect is active.
 It resumes after every active effect completes.
@@ -35,4 +38,4 @@ It resumes after every active effect completes.
 6. Override `ExpandBounds` when the effect moves splats outside the imported asset bounds.
 
 The fixed shader payload deliberately keeps the renderer independent of individual plugin classes.
-Each plugin owns the interpretation of its five `float4` data vectors.
+Each plugin owns the interpretation of its six `float4` data vectors.

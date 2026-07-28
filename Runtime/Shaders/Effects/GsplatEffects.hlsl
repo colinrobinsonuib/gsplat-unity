@@ -10,6 +10,7 @@ float4 _GsplatEffectData1;
 float4 _GsplatEffectData2;
 float4 _GsplatEffectData3;
 float4 _GsplatEffectData4;
+float4 _GsplatEffectData5;
 
 #define GSPLAT_EFFECT_NONE 0
 #define GSPLAT_EFFECT_HURRICANE 1
@@ -24,15 +25,23 @@ float GsplatEffectHash(uint value)
     return (value & 0x00ffffffu) / 16777215.0f;
 }
 
+float GsplatCloudPoint(uint splatId)
+{
+    float density = saturate(_GsplatEffectData4.y);
+    uint seedBits = asuint(_GsplatEffectData3.z + 101.0f);
+    return GsplatEffectHash(splatId ^ seedBits) < density ? 1.0f : 0.0f;
+}
+
 float GsplatHurricaneAssemblyProgress(uint splatId)
 {
     float progress = saturate(_GsplatEffectData0.w);
     float assemblyStart = saturate(_GsplatEffectData3.x);
+    float settleEnd = max(_GsplatEffectData3.w, assemblyStart + 0.0001f);
     float stagger = saturate(_GsplatEffectData2.y);
     float seed = _GsplatEffectData3.z;
     uint seedBits = asuint(seed + 1.0f);
     float delay = GsplatEffectHash(splatId ^ seedBits) * stagger;
-    float assemblyProgress = saturate((progress - assemblyStart) / max(1.0f - assemblyStart, 0.0001f));
+    float assemblyProgress = saturate((progress - assemblyStart) / max(settleEnd - assemblyStart, 0.0001f));
     return saturate((assemblyProgress - delay) / max(1.0f - delay, 0.0001f));
 }
 
@@ -47,7 +56,45 @@ float GsplatHurricaneAppearance(uint splatId)
     return smoothstep(0.0f, 1.0f, fadeProgress);
 }
 
-float3 GsplatHurricanePosition(uint splatId, float3 originalPosition, float localProgress)
+float3 GsplatCloudWobble(uint splatId, float3 originalPosition)
+{
+    float elapsedTime = _GsplatEffectData1.x;
+    float amplitude = max(_GsplatEffectData4.z, 0.0f);
+    uint seedBits = asuint(_GsplatEffectData3.z + 211.0f);
+    float3 phase = float3(
+        GsplatEffectHash(splatId * 3u + 101u + seedBits),
+        GsplatEffectHash(splatId * 3u + 131u + seedBits),
+        GsplatEffectHash(splatId * 3u + 173u + seedBits)) * 6.283185307179586f;
+    return sin(originalPosition * 2.0f + elapsedTime * float3(1.7f, 1.3f, 1.9f) + phase) * amplitude;
+}
+
+float GsplatRippleReveal(float3 originalPosition)
+{
+    float progress = saturate(_GsplatEffectData0.w);
+    float rippleStart = saturate(_GsplatEffectData5.x);
+    float rippleProgress = saturate((progress - rippleStart) / max(1.0f - rippleStart, 0.0001f));
+    float rippleRadius = max(_GsplatEffectData5.y, 0.1f);
+    float rippleWidth = max(_GsplatEffectData5.z, 0.01f);
+    float radius = length((originalPosition - _GsplatEffectData0.xyz).xz);
+    float front = lerp(-rippleWidth, rippleRadius + rippleWidth, rippleProgress);
+    return 1.0f - smoothstep(front - rippleWidth, front, radius);
+}
+
+float GsplatRippleRing(float3 originalPosition)
+{
+    float progress = saturate(_GsplatEffectData0.w);
+    float rippleStart = saturate(_GsplatEffectData5.x);
+    float rippleProgress = saturate((progress - rippleStart) / max(1.0f - rippleStart, 0.0001f));
+    float rippleRadius = max(_GsplatEffectData5.y, 0.1f);
+    float rippleWidth = max(_GsplatEffectData5.z, 0.01f);
+    float radius = length((originalPosition - _GsplatEffectData0.xyz).xz);
+    float front = lerp(-rippleWidth, rippleRadius + rippleWidth, rippleProgress);
+    float active = step(rippleStart, progress) * (1.0f - step(1.0f, progress));
+    return exp(-6.0f * abs(radius - front) / rippleWidth) * active;
+}
+
+float3 GsplatHurricanePosition(uint splatId, float3 originalPosition, float localProgress,
+                              float cloudPoint, float rippleReveal, float rippleRing)
 {
     float3 effectCenter = _GsplatEffectData0.xyz;
     float elapsedTime = _GsplatEffectData1.x;
@@ -77,7 +124,16 @@ float3 GsplatHurricanePosition(uint splatId, float3 originalPosition, float loca
         effectCenter.z + sin(angle) * radius);
 
     float settle = localProgress * localProgress * (3.0f - 2.0f * localProgress);
-    return lerp(stormPosition, originalPosition, settle);
+    float3 wobble = GsplatCloudWobble(splatId, originalPosition);
+    float3 cloudPosition = lerp(stormPosition, originalPosition + wobble, settle);
+    float3 position = lerp(originalPosition, cloudPosition, cloudPoint);
+
+    float rippleStart = saturate(_GsplatEffectData5.x);
+    float rippleActive = step(rippleStart, saturate(_GsplatEffectData0.w));
+    float3 ripplePosition = originalPosition + wobble * cloudPoint * (1.0f - rippleReveal);
+    float3 rippleRelative = ripplePosition - effectCenter;
+    ripplePosition = effectCenter + rippleRelative * (1.0f - 0.1f * rippleRing);
+    return lerp(position, ripplePosition, rippleActive);
 }
 
 void ApplyGsplatEffectPosition(uint splatId, inout float3 position)
@@ -85,7 +141,11 @@ void ApplyGsplatEffectPosition(uint splatId, inout float3 position)
     if (_GsplatEffectType == GSPLAT_EFFECT_HURRICANE)
     {
         float localProgress = GsplatHurricaneAssemblyProgress(splatId);
-        position = GsplatHurricanePosition(splatId, position, localProgress);
+        float cloudPoint = GsplatCloudPoint(splatId);
+        float rippleReveal = GsplatRippleReveal(position);
+        float rippleRing = GsplatRippleRing(position);
+        position = GsplatHurricanePosition(
+            splatId, position, localProgress, cloudPoint, rippleReveal, rippleRing);
     }
 }
 
@@ -93,15 +153,23 @@ void ApplyGsplatEffect(uint splatId, inout float3 position, inout float3 scale, 
 {
     if (_GsplatEffectType == GSPLAT_EFFECT_HURRICANE)
     {
+        float3 originalPosition = position;
         float localProgress = GsplatHurricaneAssemblyProgress(splatId);
-        position = GsplatHurricanePosition(splatId, position, localProgress);
+        float cloudPoint = GsplatCloudPoint(splatId);
+        float rippleReveal = GsplatRippleReveal(originalPosition);
+        float rippleRing = GsplatRippleRing(originalPosition);
+        position = GsplatHurricanePosition(
+            splatId, originalPosition, localProgress, cloudPoint, rippleReveal, rippleRing);
 
-        float initialScale = max(_GsplatEffectData2.z, 0.0001f);
-        float assembled = smoothstep(0.0f, 1.0f, localProgress);
+        float cloudScale = max(_GsplatEffectData2.z, 0.0001f);
         float appearance = GsplatHurricaneAppearance(splatId);
+        float cloudScaleFactor = cloudScale * appearance;
+        float scaleFactor = lerp(rippleReveal, lerp(cloudScaleFactor, 1.0f, rippleReveal), cloudPoint);
+        float alphaFactor = max(cloudPoint * appearance, rippleReveal);
 
-        scale *= lerp(initialScale, 1.0f, assembled);
-        color.a *= appearance;
+        scale *= max(scaleFactor, 0.0001f);
+        color.rgb += rippleRing * _GsplatEffectData5.w;
+        color.a *= alphaFactor;
     }
 }
 

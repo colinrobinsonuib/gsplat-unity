@@ -14,7 +14,7 @@ namespace Gsplat
 
     /// <summary>
     /// Fixed-size payload shared by the draw and depth-sort shaders. New effect plugins can
-    /// assign a new type and interpret the five data vectors in their own HLSL implementation.
+    /// assign a new type and interpret the six data vectors in their own HLSL implementation.
     /// </summary>
     public readonly struct GsplatEffectShaderData
     {
@@ -24,6 +24,7 @@ namespace Gsplat
         public readonly Vector4 Data2;
         public readonly Vector4 Data3;
         public readonly Vector4 Data4;
+        public readonly Vector4 Data5;
 
         static readonly int k_effectType = Shader.PropertyToID("_GsplatEffectType");
         static readonly int k_effectData0 = Shader.PropertyToID("_GsplatEffectData0");
@@ -31,9 +32,10 @@ namespace Gsplat
         static readonly int k_effectData2 = Shader.PropertyToID("_GsplatEffectData2");
         static readonly int k_effectData3 = Shader.PropertyToID("_GsplatEffectData3");
         static readonly int k_effectData4 = Shader.PropertyToID("_GsplatEffectData4");
+        static readonly int k_effectData5 = Shader.PropertyToID("_GsplatEffectData5");
 
         public GsplatEffectShaderData(GsplatEffectType type, Vector4 data0, Vector4 data1,
-            Vector4 data2, Vector4 data3, Vector4 data4 = default)
+            Vector4 data2, Vector4 data3, Vector4 data4 = default, Vector4 data5 = default)
         {
             Type = (int)type;
             Data0 = data0;
@@ -41,6 +43,7 @@ namespace Gsplat
             Data2 = data2;
             Data3 = data3;
             Data4 = data4;
+            Data5 = data5;
         }
 
         public bool Active => Type != (int)GsplatEffectType.None;
@@ -53,6 +56,7 @@ namespace Gsplat
             propertyBlock.SetVector(k_effectData2, Data2);
             propertyBlock.SetVector(k_effectData3, Data3);
             propertyBlock.SetVector(k_effectData4, Data4);
+            propertyBlock.SetVector(k_effectData5, Data5);
         }
 
         public void Apply(CommandBuffer cmd, ComputeShader computeShader)
@@ -63,6 +67,7 @@ namespace Gsplat
             cmd.SetComputeVectorParam(computeShader, k_effectData2, Data2);
             cmd.SetComputeVectorParam(computeShader, k_effectData3, Data3);
             cmd.SetComputeVectorParam(computeShader, k_effectData4, Data4);
+            cmd.SetComputeVectorParam(computeShader, k_effectData5, Data5);
         }
     }
 
